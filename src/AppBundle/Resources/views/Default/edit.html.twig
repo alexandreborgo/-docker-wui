@@ -1,0 +1,16 @@
+{% extends "::layout.html.twig" %}
+{% block body %}
+
+    {% if message_accept is defined %}
+        <div class="alert alert-success" role="alert">
+            The image {{ image.repository }}:{{ image.tag }} has been edit.
+        </div>
+    {% elseif message_error is defined %}
+        <div class="alert alert-danger" role="alert">
+            The image couldn't be edit.
+        </div>
+    {% endif %}
+
+    <a href="{{ path('see', {'what': 'images'}) }}" class="pull-right">Retour</a>
+
+{% endblock %}

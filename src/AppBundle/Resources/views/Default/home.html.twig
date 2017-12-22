@@ -1,0 +1,34 @@
+{% extends "::layout.html.twig" %}
+{% block body %}
+
+    <div style="border:1px solid #b3d7ff; background-color: #b3d7ff; padding: 15px; margin-bottom:20px; border-radius: 25px;">
+        <p>
+            Number of file you uploaded : {{ file }}.<br>
+            <ul>
+                <li>dockerfile : {{ file_type1 }}</li>
+                <li>docker-compose.yml : {{ file_type2 }}</li>
+            </ul>
+        </p>
+    </div>
+
+    <div style="border:1px solid #ff7269; background-color: #ff7269; padding: 15px; margin-bottom:20px; border-radius: 25px;">
+        <p>
+            Number of image : {{ image_all }}.<br>
+            <ul>
+                <li>From file : {{ image_file }}</li>
+                <li>From Docker Hub : {{ image_pull }}</li>
+            </ul>
+        </p>
+    </div>
+
+    <div style="border:1px solid #a3ff94; background-color: #a3ff94; padding: 15px; margin-bottom:20px; border-radius: 25px;">
+        <p>
+            Number of container you created : {{ container_all }}.<br>
+            <ul>
+                <li>Number running : {{ container_run }}</li>
+                <li>Number stop : {{ container_norun }}</li>
+            </ul>
+        </p>
+    </div>
+
+{% endblock %}

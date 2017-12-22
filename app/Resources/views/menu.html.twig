@@ -1,0 +1,36 @@
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <ul class="navbar-nav mr-auto">
+            {% if is_granted("IS_AUTHENTICATED_REMEMBERED") %}
+                <li class="nav-item active">
+                    <a class="nav-link" href="{{ path('home') }}">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ path('see', {'what': 'files'}) }}">Files</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ path('see', {'what': 'images'}) }}">Images</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ path('see', {'what': 'containers'}) }}">Containers</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ path('fos_user_security_logout') }}">Sign out</a>
+                </li>
+            {% else %}
+                <li class="nav-item active">
+                    <a class="nav-link" href="{{ path('fos_user_security_login') }}">Sign in</a>
+                </li>
+            {% endif %}
+        </ul>
+        {% if is_granted("IS_AUTHENTICATED_REMEMBERED") %}
+            <form class="form-inline my-2 my-lg-0">
+                <span style="color:white;">Signed in as : {{  app.user.username }}</span>
+            </form>
+        {% endif %}
+    </div>
+</nav>

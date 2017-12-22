@@ -1,0 +1,42 @@
+{% extends "::layout.html.twig" %}
+{% block body %}
+
+    {% if message_accept is defined %}
+        {% if image is defined %}
+            <div class="alert alert-success" role="alert">
+                The image {{ image.repository }}:{{ image.tag }} has been deleted.
+            </div>
+            <a href="{{ path('see', {'what': 'images'}) }}" class="pull-right">Retour</a>
+        {% elseif container is defined %}
+            <div class="alert alert-success" role="alert">
+                {{ message_accept }}
+            </div>
+            <a href="{{ path('see', {'what': 'containers'}) }}" class="pull-right">Retour</a>
+        {% elseif file is defined %}
+            <div class="alert alert-success" role="alert">
+                {{ message_accept }}
+            </div>
+            <a href="{{ path('see', {'what': 'files'}) }}" class="pull-right">Retour</a>
+        {% endif %}
+    {% elseif message_error is defined %}
+        {% if image is defined %}
+            <div class="alert alert-danger" role="alert">
+                {{ message_error }}
+            </div>
+            <a href="{{ path('see', {'what': 'images'}) }}" class="pull-right">Retour</a>
+        {% elseif container is defined %}
+            <div class="alert alert-danger" role="alert">
+                {{ message_error }}
+            </div>
+            <a href="{{ path('see', {'what': 'containers'}) }}" class="pull-right">Retour</a>
+        {% elseif file is defined %}
+            <div class="alert alert-danger" role="alert">
+                {{ message_error }}
+            </div>
+            <a href="{{ path('see', {'what': 'files'}) }}" class="pull-right">Retour</a>
+        {% endif %}
+    {% endif %}
+
+
+
+{% endblock %}

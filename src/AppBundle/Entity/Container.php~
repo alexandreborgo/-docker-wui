@@ -1,0 +1,159 @@
+<?php
+
+namespace AppBundle\Entity;
+
+use Doctrine\ORM\Mapping as ORM;
+
+/**
+ * Container
+ *
+ * @ORM\Table(name="container")
+ * @ORM\Entity(repositoryClass="AppBundle\Repository\ContainerRepository")
+ */
+class Container
+{
+    /**
+     * @var int
+     *
+     * @ORM\Column(name="id", type="integer")
+     * @ORM\Id
+     * @ORM\GeneratedValue(strategy="AUTO")
+     */
+    private $id;
+
+    /**
+     * @var int
+     *
+     * @ORM\Column(name="container_id", type="integer")
+     */
+    private $containerId;
+
+    /**
+     * @var string
+     *
+     * @ORM\Column(name="name", type="string", length=255)
+     */
+    private $name;
+
+    /**
+     * @var bool
+     *
+     * @ORM\Column(name="isrunning", type="boolean")
+     */
+    private $isrunning;
+
+    /**
+     * @var string
+     *
+     * @ORM\Column(name="image", type="string", length=255)
+     */
+    private $image;
+
+
+    /**
+     * Get id
+     *
+     * @return int
+     */
+    public function getId()
+    {
+        return $this->id;
+    }
+
+    /**
+     * Set containerId
+     *
+     * @param integer $containerId
+     *
+     * @return Container
+     */
+    public function setContainerId($containerId)
+    {
+        $this->containerId = $containerId;
+
+        return $this;
+    }
+
+    /**
+     * Get containerId
+     *
+     * @return int
+     */
+    public function getContainerId()
+    {
+        return $this->containerId;
+    }
+
+    /**
+     * Set name
+     *
+     * @param string $name
+     *
+     * @return Container
+     */
+    public function setName($name)
+    {
+        $this->name = $name;
+
+        return $this;
+    }
+
+    /**
+     * Get name
+     *
+     * @return string
+     */
+    public function getName()
+    {
+        return $this->name;
+    }
+
+    /**
+     * Set isrunning
+     *
+     * @param boolean $isrunning
+     *
+     * @return Container
+     */
+    public function setIsrunning($isrunning)
+    {
+        $this->isrunning = $isrunning;
+
+        return $this;
+    }
+
+    /**
+     * Get isrunning
+     *
+     * @return bool
+     */
+    public function getIsrunning()
+    {
+        return $this->isrunning;
+    }
+
+    /**
+     * Set image
+     *
+     * @param string $image
+     *
+     * @return Container
+     */
+    public function setImage($image)
+    {
+        $this->image = $image;
+
+        return $this;
+    }
+
+    /**
+     * Get image
+     *
+     * @return string
+     */
+    public function getImage()
+    {
+        return $this->image;
+    }
+}
+
