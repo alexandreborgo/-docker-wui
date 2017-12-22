@@ -44,7 +44,10 @@
 
         <p>
             To create a container from an image indicate the following information :<br>
-            <div class="alert alert-warning" role="alert">You are allowed to use port 8001 to 8010 as hosts port.</div>
+            <div class="alert alert-warning" role="alert">
+                You can use ports between 8001 and 8010 as hosts port.<br>
+                Other ports (like 80, 443 and other) are already used or blocked by the firewall and you will not be able to access to the container.
+            </div>
         </p>
         <form action="{{ path('add',{'what': 'container', 'how': 'fromimage'}) }}" method="post">
             <div class="form-group row">

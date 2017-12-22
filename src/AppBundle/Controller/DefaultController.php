@@ -13,45 +13,6 @@ use Symfony\Component\Finder\Finder;
 class DefaultController extends Controller
 {
     /**
-     * @Route("/", name="home")
-     */
-    public function indexAction(Request $request)
-    {
-        $query = $this->getDoctrine()->getManager()->createQuery("SELECT count('id') FROM AppBundle:DCFile");
-        $file = $query->execute();
-        $query = $this->getDoctrine()->getManager()->createQuery("SELECT COUNT(f) FROM AppBundle:DCFile f WHERE f.type = 1");
-        $file_type1 = $query->execute();
-        $query = $this->getDoctrine()->getManager()->createQuery("SELECT COUNT(f) FROM AppBundle:DCFile f WHERE f.type = 2");
-        $file_type2 = $query->execute();
-
-        $query = $this->getDoctrine()->getManager()->createQuery("SELECT count('id') FROM AppBundle:Image");
-        $image_all = $query->execute();
-        $query = $this->getDoctrine()->getManager()->createQuery("SELECT count(i) FROM AppBundle:Image i WHERE i.isfromdf = 0");
-        $image_pull = $query->execute();
-        $query = $this->getDoctrine()->getManager()->createQuery("SELECT count(i) FROM AppBundle:Image i WHERE i.isfromdf = 1");
-        $image_file = $query->execute();
-
-        $query = $this->getDoctrine()->getManager()->createQuery("SELECT count(co) FROM AppBundle:Container co");
-        $container_all = $query->execute();
-        $query = $this->getDoctrine()->getManager()->createQuery("SELECT count(co) FROM AppBundle:Container co WHERE co.isrunning = 1");
-        $container_run = $query->execute();
-        $query = $this->getDoctrine()->getManager()->createQuery("SELECT count(co) FROM AppBundle:Container co WHERE co.isrunning = 0");
-        $container_norun = $query->execute();
-
-        return $this->render('AppBundle:Default:home.html.twig', array(
-            'file' => $file[0][1],
-            'file_type1'=> $file_type1[0][1],
-            'file_type2'=> $file_type2[0][1],
-            'image_all' => $image_all[0][1],
-            'image_pull' => $image_pull[0][1],
-            'image_file' => $image_file[0][1],
-            'container_all' => $container_all[0][1],
-            'container_run' => $container_run[0][1],
-            'container_norun' => $container_norun[0][1]
-        ));
-    }
-
-    /**
      * @Route("/see/{what}", name="see")
      */
     public function seeAction(Request $request, $what)
@@ -61,21 +22,19 @@ class DefaultController extends Controller
         switch($what) {
             case 'containers':
 
-                $repository = $this->getDoctrine()
-                    ->getRepository(Container::class);
+                $repository = $this->getDoctrine()->getRepository(Container::class);
 
-                $containers = $repository->findBy(
-                    ['owner' => $this->getUser()->getId()]
-                );
+                // only current user container
+                $containers = $repository->findBy(['owner' => $this->getUser()->getId()]);
 
                 $response = $this->render('AppBundle:Default:see.html.twig', array('containers' => $containers));
                 break;
 
             case 'images':
 
-                $repository = $this->getDoctrine()
-                    ->getRepository(Image::class);
+                $repository = $this->getDoctrine()->getRepository(Image::class);
 
+                // all images
                 $images = $repository->findAll();
 
                 $response = $this->render('AppBundle:Default:see.html.twig', array('images' => $images));
@@ -83,9 +42,9 @@ class DefaultController extends Controller
 
             case 'files':
 
-                $repository = $this->getDoctrine()
-                    ->getRepository('AppBundle:DCFile');
+                $repository = $this->getDoctrine()->getRepository('AppBundle:DCFile');
 
+                // all files
                 $file = $repository->findAll();
 
                 $contents = array();
@@ -100,6 +59,7 @@ class DefaultController extends Controller
 
                 $response = $this->render('AppBundle:Default:see.html.twig', array('files' => $file, 'contents' => $contents));
                 break;
+
             default:
                 throw $this->createNotFoundException('Error 404');
                 break;
@@ -116,9 +76,11 @@ class DefaultController extends Controller
         if($what == 'image') {
             if($how == 'pull') {
 
+                // comment can be empty
                 if(!empty($request->request->get('repository')) && !empty($request->request->get('tag'))) {
 
-                    $pattern = '/[\'\/~`\!@#\$%\^&\*\(\)_\+=\{\}\[\]\|;:"\<\>,\.\?\\\]/';
+                    // valid char
+                    $pattern = '/[\'\/~`\!@#\$%\^&\*\(\)_\+=\{\}\[\]\|;:"\<\>,\?\\\]/';
 
                     if (preg_match($pattern, $request->request->get('repository')) OR
                         preg_match($pattern, $request->request->get('tag')))
@@ -135,6 +97,7 @@ class DefaultController extends Controller
                                 'tag' => $request->request->get('tag')
                     ));
 
+                    // this image is already present
                     if($image) {
                         return $this->render('AppBundle:Default:add.html.twig',
                             array('image'=> 'pull',
@@ -143,21 +106,21 @@ class DefaultController extends Controller
                     }
                     else {
                         $new_image = new Image();
-                        $new_image->setImageId("unknown");
+                        $new_image->setImageId("unknown"); // completed after the download
                         $new_image->setRepository($request->request->get('repository'));
                         $new_image->setTag($request->request->get('tag'));
                         $new_image->setComment($request->request->get('comment'));
                         $new_image->setIsfromdf(false);
                         $new_image->setPath("none");
                         $new_image->setStatut(1);
-                        $new_image->setSize("unknown");
+                        $new_image->setSize("unknown"); // completed after the download
 
                         $dm = $this->getDoctrine()->getManager();
                         $dm->persist($new_image);
                         $dm->flush();
 
-                        //$arg = $new_image->getRepository() . ":" . $new_image->getTag();
-                        $result = shell_exec("nohup wget -q " . (isset($_SERVER["HTTPS"]) ? "https" : "http") . "://" . $_SERVER["HTTP_HOST"] . $this->generateUrl('script', array('action' => 'pull', 'image' => $new_image->getId())) . " > log 2>&1 &");
+                        // call download script, in parallel to not slow the page
+                        shell_exec("nohup wget -q " . (isset($_SERVER["HTTPS"]) ? "https" : "http") . "://" . $_SERVER["HTTP_HOST"] . $this->generateUrl('script', array('action' => 'pull', 'image' => $new_image->getId())) . " > log 2>&1 &");
                     }
 
                     return $this->render('AppBundle:Default:add.html.twig',
@@ -166,6 +129,8 @@ class DefaultController extends Controller
                         ));
                 }
 
+                // here we check if the form was posted or not
+                // in order to display an error if it is
                 if(!empty($request->request->get('repository')) or !empty($request->request->get('tag'))) {
                     return $this->render('AppBundle:Default:add.html.twig',
                         array('image' => 'pull',
@@ -253,9 +218,8 @@ class DefaultController extends Controller
                     }
 
                     return $this->render('AppBundle:Default:add.html.twig', array(
-                        'container' => 'fromimage',
-                        'message_accept' => 'The container has been created.',
                         'container' => 'true',
+                        'message_accept' => 'The container has been created.',
                         'images' => $images));
                 }
 
@@ -321,72 +285,6 @@ class DefaultController extends Controller
     }
 
     /**
-     * @Route("/delete/{object}/{id}", name="delete")
-     */
-    public function deleteAction(Request $request, $object, $id)
-    {
-        if($object == 'image') {
-            $dm = $this->getDoctrine()->getManager();
-            $image = $dm->getRepository(Image::class)->find($id);
-
-            if($image == null) {
-                return $this->render('AppBundle:Default:delete.html.twig', array('image' => $image,
-                    'message_error' => 'The image with id : ' . $id . ' doesn\'t exist.'));
-            }
-
-            $result = shell_exec("docker rmi " . $image->getRepository() . ":" . $image->getTag() . " 2>&1");
-
-            if(strpos($result, "No such image") !== false) {
-                $dm->remove($image);
-                $dm->flush();
-                return $this->render('AppBundle:Default:delete.html.twig', array('image' => $image, 'message_accept' => 'Done'));
-            }
-            else if(strpos($result, "Error") !== false) {
-                return $this->render('AppBundle:Default:delete.html.twig', array('image' => $image, 'message_error' => 'The image ' . $image->getRepository() . ':' . $image->getTag(). ' couldn\'t be removed because there\'s a container using it.'));
-            }
-            else {
-                $dm->remove($image);
-                $dm->flush();
-                return $this->render('AppBundle:Default:delete.html.twig', array('image' => $image, 'message_accept' => 'Done'));
-            }
-        }
-        else if($object == 'container') {
-            $dm = $this->getDoctrine()->getManager();
-            $container = $dm->getRepository(Container::class)->find($id);
-
-            if($container == null) {
-                return $this->render('AppBundle:Default:delete.html.twig', array('container' => $container,
-                    'message_error' => 'The container with id : ' . $id . ' doesn\'t exist.'));
-            }
-
-            $result1 = shell_exec("docker stop " . $container->getContainerId() . " 2>&1");
-            $result2 = shell_exec("docker rm " . $container->getContainerId() . " 2>&1");
-
-            $dm->remove($container);
-            $dm->flush();
-            return $this->render('AppBundle:Default:delete.html.twig', array('container' => $container, 'message_accept' => 'Container has been deleted.'));
-        }
-        else if($object == 'file') {
-            $dm = $this->getDoctrine()->getManager();
-            $file = $dm->getRepository(DCFile::class)->find($id);
-
-            if($file == null) {
-                return $this->render('AppBundle:Default:delete.html.twig', array('file' => $file,
-                    'message_error' => 'The file with id : ' . $id . ' doesn\'t exist.'));
-            }
-
-
-            $dm->remove($file);
-            $dm->flush();
-
-            return $this->render('AppBundle:Default:delete.html.twig', array('file' => $file, 'message_accept' => 'File has been deleted.'));
-        }
-
-        return $this->render('AppBundle:Default:delete.html.twig', array('file' => 'toto',
-            'message_error' => 'Error'));
-    }
-
-    /**
      * @Route("/edit/{object}/{id}/{action}", name="edit")
      */
     public function editAction(Request $request, $id, $object, $action)
@@ -395,23 +293,95 @@ class DefaultController extends Controller
             $dm = $this->getDoctrine()->getManager();
             $image = $dm->getRepository(Image::class)->find($id);
 
+            // the image exist
             if ($image) {
                 if($action == 1) {
+                    // the image was downloaded so we active it
                     $image->setStatut(0);
                     $dm->flush();
                 }
                 else if($action == 2) {
-                    if(!empty($request->request->get('comment'))) {
-                        $image->setComment($request->request->get('comment'));
-                        $dm->flush();
+                    // edit the comment on the image
+                    // no check on the comment (empty or not)
+                    // we may want to delete the comment
+                    $image->setComment($request->request->get('comment'));
+                    $dm->flush();
 
-                        return $this->render('AppBundle:Default:edit.html.twig', array('image' => $image, 'message_accept' => 'true'));
-                    }
+                    return $this->render('AppBundle:Default:edit.html.twig', array('image' => $image, 'message_accept' => 'true'));
                 }
             }
         }
 
-        return $this->render('AppBundle:Default:edit.html.twig', array('message_error' => 'true'));
+        return $this->render('AppBundle:Default:edit.html.twig', array('message_error' => 'The image couldn\'t be edited.'));
+    }
+
+    /**
+     * @Route("/delete/{object}/{id}", name="delete")
+     */
+    public function deleteAction(Request $request, $object, $id)
+    {
+        if($object == 'image') {
+            $dm = $this->getDoctrine()->getManager();
+            $image = $dm->getRepository(Image::class)->find($id);
+
+            // if image does not exist return error
+            if($image == null) {
+                return $this->render('AppBundle:Default:delete.html.twig', array('image' => $image,
+                    'message_error' => 'The image with id : ' . $id . ' doesn\'t exist.'));
+            }
+
+            // we try to destroy the image
+            $result = shell_exec("docker rmi " . $image->getRepository() . ":" . $image->getTag() . " 2>&1");
+
+            // fail return error or suceed delete into the bdd
+            if(strpos($result, "conflict") !== false) {
+                return $this->render('AppBundle:Default:delete.html.twig', array('image' => $image,
+                    'message_error' => 'The image ' . $image->getRepository() . ':' . $image->getTag(). ' couldn\'t be removed because there\'s a container using it.'));
+            }
+            else {
+                $dm->remove($image);
+                $dm->flush();
+                return $this->render('AppBundle:Default:delete.html.twig', array('image' => $image,
+                    'message_accept' => 'The image has been deleted.'));
+            }
+        }
+        else if($object == 'container') {
+            $dm = $this->getDoctrine()->getManager();
+            $container = $dm->getRepository(Container::class)->find($id);
+
+            // if the container does not exist we return an error
+            if($container == null) {
+                return $this->render('AppBundle:Default:delete.html.twig', array('container' => $container,
+                    'message_error' => 'The container with id : ' . $id . ' doesn\'t exist.'));
+            }
+
+            // can only fail if the container doesn't exist so it isn't a problem
+            shell_exec("docker stop " . $container->getContainerId() . " 2>&1");
+            shell_exec("docker rm " . $container->getContainerId() . " 2>&1");
+
+            $dm->remove($container);
+            $dm->flush();
+            return $this->render('AppBundle:Default:delete.html.twig', array('container' => $container,
+                'message_accept' => 'Container has been deleted.'));
+        }
+        else if($object == 'file') {
+            $dm = $this->getDoctrine()->getManager();
+            $file = $dm->getRepository(DCFile::class)->find($id);
+
+            // the file doesn't exist
+            if($file == null) {
+                return $this->render('AppBundle:Default:delete.html.twig', array('file' => $file,
+                    'message_error' => 'The file with id : ' . $id . ' doesn\'t exist.'));
+            }
+
+            $dm->remove($file);
+            $dm->flush();
+
+            return $this->render('AppBundle:Default:delete.html.twig', array('file' => $file, 'message_accept' => 'File has been deleted.'));
+        }
+
+        // if reached there's a problem in the url
+        throw $this->createNotFoundException('Error 404');
     }
 
     /**
@@ -424,15 +394,24 @@ class DefaultController extends Controller
         if($action == 'pull') {
 
             $imageObject = $dm->getRepository(Image::class)->find($image);
-            $result = exec("docker pull " . $imageObject->getRepository() . ":" . $imageObject->getTag() . " 2>&1");
 
+            // the image doesn't exist
+            if($imageObject == null) {
+                // as this script is executed in parallel no need to return anything
+                exit;
+            }
+
+            // pull the image
+            $result = shell_exec("docker pull " . $imageObject->getRepository() . ":" . $imageObject->getTag() . " 2>&1");
+
+            // image doesn't exist on docker hub
             if (strpos($result, "Error") !== false) {
                 $imageObject->setStatut(-1);
                 $imageObject->setComment("repository or tag not found");
                 $dm->flush();
             }
             else {
-                $idsize = exec("docker images " . $imageObject->getRepository() . ":" . $imageObject->getTag() . " --format \"{{.ID}}:{{.Size}}\"");
+                $idsize = shell_exec("docker images " . $imageObject->getRepository() . ":" . $imageObject->getTag() . " --format \"{{.ID}}:{{.Size}}\"");
                 list($id, $size) = explode(":", $idsize);
 
                 $imageObject->setImageId($id);
@@ -444,13 +423,16 @@ class DefaultController extends Controller
         else if($action == 'start') {
             $container = $dm->getRepository(Container::class)->find($image);
 
+            // container doesn't exist
             if(!$container) {
                 return $this->render('AppBundle:Default:delete.html.twig', array('container' => 'toto',
                     'message_error' => 'Container doesn\'t exist.'));
             }
 
+            // start
             $result = shell_exec("docker start " . $container->getContainerId() . " 2>&1");
 
+            // error cannot start the container
             if (empty($result)) {
                 return $this->render('AppBundle:Default:delete.html.twig', array('container' => 'toto',
                     'message_error' => 'Container can\'t start (maybe because an other container is binded to this port).'));
@@ -465,12 +447,13 @@ class DefaultController extends Controller
         else if($action == 'stop') {
             $container = $dm->getRepository(Container::class)->find($image);
 
+            // container doesn't exist
             if(!$container) {
                 return $this->render('AppBundle:Default:delete.html.twig', array('container' => 'toto',
                     'message_error' => 'Container doesn\'t exist.'));
             }
 
-            $result = shell_exec("docker stop " . $container->getContainerId() . " 2>&1");
+            shell_exec("docker stop " . $container->getContainerId() . " 2>&1");
             $container->setIsRunning(0);
             $dm->flush();
 
@@ -478,7 +461,48 @@ class DefaultController extends Controller
                 'message_accept' => 'Container is stoped.'));
         }
 
-        return $this->render('AppBundle:Default:delete.html.twig', array('container' => 'toto',
-            'message_error' => 'Error'));
+        // if reached there's a problem in the url
+        throw $this->createNotFoundException('Error 404');
+    }
+
+    /**
+     * @Route("/", name="home")
+     */
+    public function indexAction(Request $request)
+    {
+        // it works but it's not beautiful, needed to change
+        $dm = $this->getDoctrine()->getManager();
+        $query = $dm->createQuery("SELECT count('id') FROM AppBundle:DCFile");
+        $file = $query->execute();
+        $query = $dm->createQuery("SELECT COUNT(f) FROM AppBundle:DCFile f WHERE f.type = 1");
+        $file_type1 = $query->execute();
+        $query = $dm->createQuery("SELECT COUNT(f) FROM AppBundle:DCFile f WHERE f.type = 2");
+        $file_type2 = $query->execute();
+
+        $query = $dm->createQuery("SELECT count('id') FROM AppBundle:Image");
+        $image_all = $query->execute();
+        $query = $dm->createQuery("SELECT count(i) FROM AppBundle:Image i WHERE i.isfromdf = 0");
+        $image_pull = $query->execute();
+        $query = $dm->createQuery("SELECT count(i) FROM AppBundle:Image i WHERE i.isfromdf = 1");
+        $image_file = $query->execute();
+
+        $query = $dm->createQuery("SELECT count(co) FROM AppBundle:Container co");
+        $container_all = $query->execute();
+        $query = $dm->createQuery("SELECT count(co) FROM AppBundle:Container co WHERE co.isrunning = 1");
+        $container_run = $query->execute();
+        $query = $dm->createQuery("SELECT count(co) FROM AppBundle:Container co WHERE co.isrunning = 0");
+        $container_norun = $query->execute();
+
+        return $this->render('AppBundle:Default:home.html.twig', array(
+            'file' => $file[0][1],
+            'file_type1'=> $file_type1[0][1],
+            'file_type2'=> $file_type2[0][1],
+            'image_all' => $image_all[0][1],
+            'image_pull' => $image_pull[0][1],
+            'image_file' => $image_file[0][1],
+            'container_all' => $container_all[0][1],
+            'container_run' => $container_run[0][1],
+            'container_norun' => $container_norun[0][1]
+        ));
     }
 }
